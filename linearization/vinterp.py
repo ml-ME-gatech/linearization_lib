@@ -17,10 +17,10 @@ def match_translate_bbox(x1: np.ndarray,
                          tol = 1e-12) -> Tuple[np.ndarray, float]:
     
 
-    dx = x1.min() - x2.min()
+    dx = x1.min(axis = 0) - x2.min(axis = 0)
     x2 +=  dx
-    scale = x1.max() - x1.min()
-    diff = np.abs(x1.max() - x2.max())
+    scale = x1.max(axis = 0) - x1.min(axis = 0)
+    diff = np.abs(x1.max(axis = 0) - x2.max(axis = 0))
     diff[diff < tol]  =1. 
 
     v_overlap = np.prod(diff/scale)
