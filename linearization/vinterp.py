@@ -53,7 +53,7 @@ def interpolate_nodal_values(xin: np.ndarray,
     
     """
 
-    xout,v_overlap = match_translate_bbox(xout,xin)
+    xin,v_overlap = match_translate_bbox(xout,xin)
     if yin.ndim == 1:
         yin = yin[:,None]
     
