@@ -29,7 +29,8 @@ def match_translate_bbox(x1: np.ndarray,
 
 def interpolate_nodal_values(xin: np.ndarray,
                              yin: np.ndarray,
-                             xout: np.ndarray) -> np.ndarray:
+                             xout: np.ndarray,
+                             method = 'linear') -> np.ndarray:
 
     """
     a light wrapping around the scipy's LinearNDInterpolater 
@@ -57,12 +58,16 @@ def interpolate_nodal_values(xin: np.ndarray,
     if yin.ndim == 1:
         yin = yin[:,None]
     
-    linear_interp = LinearNDInterpolator(xin,
-                                        yin,
-                                        rescale = True,
-                                        fill_value = np.nan)
+    if method == 'linear':
+        linear_interp = LinearNDInterpolator(xin,
+                                            yin,
+                                            rescale = True,
+                                            fill_value = np.nan)
                             
-    values_out = linear_interp(xout)
+        values_out = linear_interp(xout)
+    else:
+        values_out = np.nan*np.ones([xout.shape[0],yin.shape[1]])
+
     index = np.any(np.isnan(values_out),axis = 1)
 
     nearest_interp = NearestNDInterpolator(xin,
@@ -74,7 +79,8 @@ def interpolate_nodal_values(xin: np.ndarray,
     return values_out,v_overlap
 
 def interpolate_nodal_temperatures(df_in: pd.DataFrame,
-                                   mesh_nodes: pd.DataFrame) -> pd.DataFrame:
+                                   mesh_nodes: pd.DataFrame,
+                                   method = 'linear') -> pd.DataFrame:
     """
     Interpolates scalar/vector values at supplied nodes in "df_in" 
     to the nodal locations supplied at "mesh_nodes". 
@@ -98,7 +104,7 @@ def interpolate_nodal_temperatures(df_in: pd.DataFrame,
     xin = df_in[['{}-coordinate'.format(c) for c in ['x','y','z']]].to_numpy()
     yin = df_in['temperature'].to_numpy()
     xout = mesh_nodes.to_numpy()
-    yout,v_overlap = interpolate_nodal_values(xin,yin,xout)
+    yout,v_overlap = interpolate_nodal_values(xin,yin,xout,method = method)
     return pd.DataFrame(yout,
                         index = pd.Series(mesh_nodes.index.astype(int),name = 'node'),
                         columns = ['temperature']),v_overlap
@@ -123,6 +129,7 @@ def main():
                         help = 'file name to write interpolated temperature to \
                                 in node,temperature .csv format')      
 
+    parser.add_argument('--method',type = str,nargs = 1,required= False,default='linear')
 
     args = parser.parse_args()
 
@@ -137,7 +144,7 @@ def main():
     nodal_df = pd.read_csv(args.file_name2[0],index_col = 0,header = None,sep = ',')
 
     #do the interpolation according to the logic supplied in the function here
-    output_df,v_overlap = interpolate_nodal_temperatures(cfd_df,nodal_df)
+    output_df,v_overlap = interpolate_nodal_temperatures(cfd_df,nodal_df,method=args.method[0])
 
     if v_overlap < 0.1:
         warnings.warn(f'The overlap between the cfd and nodal locations is: {round(v_overlap*100,3)}%')
