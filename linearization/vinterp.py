@@ -76,7 +76,7 @@ def interpolate_nodal_values(xin: np.ndarray,
 
     values_out[index,:] = nearest_interp(xout[index,:])
 
-    return values_out,v_overlap
+    return values_out,1-v_overlap
 
 def interpolate_nodal_temperatures(df_in: pd.DataFrame,
                                    mesh_nodes: pd.DataFrame,
