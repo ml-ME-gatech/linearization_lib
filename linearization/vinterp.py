@@ -14,7 +14,7 @@ interpplating in a volume is usually highly accururate if the mesh is "dense eno
 
 def match_translate_bbox(x1: np.ndarray,
                          x2: np.ndarray,
-                         tol = 1e-12) -> Tuple[np.ndarray, float]:
+                         tol = 1e-20) -> Tuple[np.ndarray, float]:
     
 
     dx = x1.min(axis = 0) - x2.min(axis = 0)
@@ -23,9 +23,9 @@ def match_translate_bbox(x1: np.ndarray,
     diff = np.abs(x1.max(axis = 0) - x2.max(axis = 0))
     diff[diff < tol]  =1. 
 
-    v_overlap = np.prod(diff/scale)
+    v_diff = np.prod(diff/scale)
 
-    return x2,v_overlap    
+    return x2,1- v_diff    
 
 def interpolate_nodal_values(xin: np.ndarray,
                              yin: np.ndarray,
@@ -65,9 +65,11 @@ def interpolate_nodal_values(xin: np.ndarray,
                                             fill_value = np.nan)
                             
         values_out = linear_interp(xout)
-    else:
+    elif method == 'nearest':
         values_out = np.nan*np.ones([xout.shape[0],yin.shape[1]])
-
+    else:
+        raise ValueError('method must be one of "linear" or "nearest"')
+    
     index = np.any(np.isnan(values_out),axis = 1)
 
     nearest_interp = NearestNDInterpolator(xin,
@@ -76,7 +78,7 @@ def interpolate_nodal_values(xin: np.ndarray,
 
     values_out[index,:] = nearest_interp(xout[index,:])
 
-    return values_out,1-v_overlap
+    return values_out,v_overlap
 
 def interpolate_nodal_temperatures(df_in: pd.DataFrame,
                                    mesh_nodes: pd.DataFrame,
@@ -129,7 +131,7 @@ def main():
                         help = 'file name to write interpolated temperature to \
                                 in node,temperature .csv format')      
 
-    parser.add_argument('--method',type = str,nargs = 1,required= False,default='linear')
+    parser.add_argument('--method',type = str,nargs = 1,required= False,default=['linear'])
 
     args = parser.parse_args()
 
@@ -144,9 +146,10 @@ def main():
     nodal_df = pd.read_csv(args.file_name2[0],index_col = 0,header = None,sep = ',')
 
     #do the interpolation according to the logic supplied in the function here
+
     output_df,v_overlap = interpolate_nodal_temperatures(cfd_df,nodal_df,method=args.method[0])
 
-    if v_overlap < 0.1:
+    if v_overlap < 0.9:
         warnings.warn(f'The overlap between the cfd and nodal locations is: {round(v_overlap*100,3)}%')
 
     #write the interpolated dataframe to a file
