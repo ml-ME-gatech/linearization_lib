@@ -37,6 +37,25 @@ def _von_mises_from_full(stress: np.ndarray):
                                 6*(np.power(stress[:,3,...],2.0) + np.power(stress[:,4,...],2.0) +\
                                 np.power(stress[:,5,...],2.0))))
 
+def tresca_from_primary(sigma: np.ndarray):
+    """
+    compute tresca stress intensity from the primary criterion
+    """
+
+    perm_matrix = np.array([
+        [ 1, -1,  0],  # sigma1 - sigma2
+        [ 0,  1, -1],  # sigma2 - sigma3
+        [-1,  0,  1]   # sigma3 - sigma1
+    ])
+
+    shear = np.einsum('ij,a...j->a...i', perm_matrix, sigma)
+    np.abs(shear,out = shear)
+    return shear.max(axis = 1) 
+    
+def tresca_from_full(sigma: np.ndarray):
+
+    return tresca_from_primary(principal_values(sigma))
+
 def equivalent_stress(stress: np.ndarray) -> np.ndarray:
     """
     compute equivalent stresses

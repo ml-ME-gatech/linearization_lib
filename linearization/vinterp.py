@@ -1,10 +1,9 @@
 import pandas as pd
 from scipy.interpolate import LinearNDInterpolator,NearestNDInterpolator
 import numpy as np
-import argparse
-import os
+
 from typing import Tuple
-import warnings
+
 
 """
 Helper/Convinience classes for interpolating volume fields. This is different than interpolating 
@@ -111,53 +110,6 @@ def interpolate_nodal_temperatures(df_in: pd.DataFrame,
                         index = pd.Series(mesh_nodes.index.astype(int),name = 'node'),
                         columns = ['temperature']),v_overlap
 
-
-def main():
-
-    #parsing logic here
-    parser = argparse.ArgumentParser(description= 'Interpolation of temperatures using the scipy interpolate \
-                                                    library. This function accepts three file names as arguments')
-            
-    parser.add_argument('file_name1',type = str,nargs = 1,
-                        help = 'file containing cfd temperature data from fluent in \
-                                node,x-coordinate,y-coordinate,z-coordinate,temperature .csv format')
-    
-    
-    parser.add_argument('file_name2',type = str,nargs = 1,
-                        help = 'file containing nodal locations from apdl in \
-                                node,x-coordinate,y-coordinate,z-coordinate,.csv format')
-
-    parser.add_argument('file_name3',type = str,nargs = 1,
-                        help = 'file name to write interpolated temperature to \
-                                in node,temperature .csv format')      
-
-    parser.add_argument('--method',type = str,nargs = 1,required= False,default=['linear'])
-
-    args = parser.parse_args()
-
-    #check to make sure the input files exist for sanity
-    for arg in list(vars(args).values())[0:2]:
-        if not os.path.exists(arg[0]):
-            raise FileNotFoundError('file: {} does not exist, please provide an existing file name'.format(arg))
-    
-    #read in input data frames. pandas does not correctly format cfd dataframe headers
-    cfd_df = pd.read_csv(args.file_name1[0],index_col = 0,header = 0,sep = ',')
-    cfd_df.columns = [c.strip() for c in cfd_df.columns]
-    nodal_df = pd.read_csv(args.file_name2[0],index_col = 0,header = None,sep = ',')
-
-    #do the interpolation according to the logic supplied in the function here
-
-    output_df,v_overlap = interpolate_nodal_temperatures(cfd_df,nodal_df,method=args.method[0])
-
-    if v_overlap < 0.9:
-        warnings.warn(f'The overlap between the cfd and nodal locations is: {round(v_overlap*100,3)}%')
-
-    #write the interpolated dataframe to a file
-    output_df.to_csv(args.file_name3[0])
-
-
-if __name__ == '__main__':
-    main() 
 
 
     
